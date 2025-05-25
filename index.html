@@ -1,0 +1,212 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LOVE-OS Proposal</title>
+  <style>
+    body {
+      background: linear-gradient(135deg, #000000, #1a1a1a);
+      color: #00ffcc;
+      font-family: 'Courier New', monospace;
+      margin: 0;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    #terminalBox {
+      max-width: 600px;
+      margin: auto;
+      border: 2px solid #00ffcc;
+      border-radius: 12px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.9);
+      box-shadow: 0 0 25px #00ffcc;
+      font-size: 1.1rem;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .page {
+      display: none;
+      flex-grow: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+    }
+    .page.visible {
+      display: block;
+    }
+    .message {
+      margin: 10px 0;
+      white-space: pre-line;
+      font-weight: bold;
+    }
+    button {
+      background: linear-gradient(145deg, #00ffcc, #006666);
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      margin: 10px 5px;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 4px 15px rgba(0,255,204,0.4);
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    #fingerprintScanner {
+      width: 150px;
+      height: 150px;
+      border: 2px dashed #00ffcc;
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+      font-size: 1.2rem;
+      user-select: none;
+      font-weight: bold;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 10px #00ffcc; }
+      50% { box-shadow: 0 0 20px #00ffcc; }
+      100% { box-shadow: 0 0 10px #00ffcc; }
+    }
+    #heart {
+      width: 100px;
+      height: 90px;
+      margin: 20px auto;
+      position: relative;
+      animation: beat 1s infinite;
+    }
+    #heart::before,
+    #heart::after {
+      content: "";
+      position: absolute;
+      width: 100px;
+      height: 90px;
+      background: #ff0055;
+      border-radius: 50px 50px 0 0;
+      top: 0;
+      left: 0;
+    }
+    #heart::after {
+      left: 50px;
+    }
+    #heart {
+      transform: rotate(-45deg);
+    }
+    @keyframes beat {
+      0%, 100% { transform: scale(1) rotate(-45deg); }
+      50% { transform: scale(1.1) rotate(-45deg); }
+    }
+    #blackoutOverlay {
+      position: fixed;
+      top:0; left:0; right:0; bottom:0;
+      background: black;
+      color: #ff0033;
+      font-family: monospace;
+      font-size: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 1000;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminalBox">
+    <div id="page0" class="page visible">
+      <div id="typingIntro" class="message"></div>
+      <div style="margin-top:20px;">
+        <button onclick="nextPage('pageIntro')">Continue</button>
+      </div>
+    </div>
+    <div id="pageIntro" class="page">
+      <div class="message">Please give access to your heart...</div>
+      <div id="fingerprintScanner" onclick="nextPage('pageInit')">Scan...</div>
+    </div>
+    <div id="pageInit" class="page">
+      <div class="message" id="typingInit"></div>
+      <div>
+        <button onclick="nextPage('pageHeart')">Continue</button>
+      </div>
+    </div>
+    <div id="pageHeart" class="page">
+      <div id="heart"></div>
+      <div class="message" id="typingHeart"></div>
+      <button onclick="nextPage('pageReasons')">Know Why I Love You</button>
+    </div>
+    <div id="pageReasons" class="page">
+      <div class="message" id="typingReasons"></div>
+      <button onclick="nextPage('pageFinal')">Next</button>
+    </div>
+    <div id="pageFinal" class="page">
+      <div class="message">Will you be mine?</div>
+      <button onclick="acceptProposal()">Yes</button>
+      <button onclick="rejectProposal()">No</button>
+    </div>
+    <div id="pageScanFinal" class="page">
+      <div id="fingerprintScanner" onclick="nextPage('pageCode')">Scan Final</div>
+    </div>
+    <div id="pageCode" class="page">
+      <div class="message">Secret Code: <strong>LOVE-SIYA-FOREVER-2025</strong></div>
+      <div class="message">Aman has been notified!</div>
+    </div>
+  </div>
+  <div id="blackoutOverlay">
+    <div>System Failure...</div>
+    <div id="countdown">3</div>
+  </div>
+  <script>
+    const texts = {
+      typingIntro: "Hello Siya, I am LOVE-OS, your assistant and Aman’s messenger. I'm here with something very special just for you...",
+      typingInit: "Initializing secure connection...\nLoading modules: Memories, Emotions, Confession...\nSystem Online. Welcome Siya.",
+      typingHeart: "Your heart is glowing with love... Prepare for emotional access.",
+      typingReasons: "Here are the reasons why Aman loves you:\n- Your beautiful smile.\n- Your kind heart.\n- The way you speak.\n- Your intelligence and charm.\n- And most of all, the way you make him feel special."
+    };
+    function liveType(id, text, cb) {
+      const el = document.getElementById(id);
+      el.textContent = '';
+      let i = 0;
+      function type() {
+        if (i < text.length) {
+          el.textContent += text[i++];
+          setTimeout(type, 40);
+        } else if (cb) cb();
+      }
+      type();
+    }
+    function nextPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+      document.getElementById(id).classList.add('visible');
+      if (id === 'pageInit') liveType('typingInit', texts.typingInit);
+      if (id === 'pageHeart') liveType('typingHeart', texts.typingHeart);
+      if (id === 'pageReasons') liveType('typingReasons', texts.typingReasons);
+    }
+    function acceptProposal() {
+      nextPage('pageScanFinal');
+    }
+    function rejectProposal() {
+      document.getElementById('blackoutOverlay').style.display = 'flex';
+      let count = 3;
+      const interval = setInterval(() => {
+        count--;
+        document.getElementById('countdown').textContent = count;
+        if (count === 0) {
+          clearInterval(interval);
+          document.body.innerHTML = '<div style="color:red;text-align:center;padding:100px;font-size:2rem;">System Destroyed...</div>';
+        }
+      }, 1000);
+    }
+    window.onload = () => {
+      liveType('typingIntro', texts.typingIntro);
+    };
+  </script>
+</body>
+</html>
